@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String  @id @default(uuid())
+  email    String  @unique
+  username String? @unique
+}
+
+model Language {
+  id   Int    @id @default(autoincrement())
+  code String @unique // e.g., 'vi', 'en', 'de'
+  name String
+
+  sentenceTranslations SentenceTranslation[]
+  wordTranslations     WordTranslationMap[]
+  lessonAudios         LessonAudio[]
+}
+
+model Course {
+  id        Int      @id @default(autoincrement())
+  title     String
+  createdAt DateTime @default(now())
+
+  lesson Lesson[]
+}
+
+model Lesson {
+  id        Int      @id @default(autoincrement())
+  courseId  Int
+  title     String
+  createdAt DateTime @default(now())
+
+  sentences    Sentence[] 
+  lessonAudios LessonAudio[] 
+  course       Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model Sentence {
+  id       Int     @id @default(autoincrement())
+  lessonId Int
+  content  String
+
+  lesson           Lesson                @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  translations     SentenceTranslation[]  
+  wordTranslations WordTranslation[]     
+}
+
+model SentenceTranslation {
+  id          Int    @id @default(autoincrement())
+  sentenceId  Int
+  languageId  Int
+  translation String
+  audioUrl    String?
+
+  sentence Sentence @relation(fields: [sentenceId], references: [id], onDelete: Cascade)
+  language Language @relation(fields: [languageId], references: [id])
+}
+
+model WordTranslation {
+  id         Int    @id @default(autoincrement())
+  sentenceId Int
+  sourceWord String
+
+  sentence     Sentence             @relation(fields: [sentenceId], references: [id], onDelete: Cascade)
+  translations WordTranslationMap[] 
+}
+
+model WordTranslationMap {
+  id                Int    @id @default(autoincrement())
+  wordTranslationId Int
+  languageId        Int
+  translatedWord    String
+
+  wordTranslation WordTranslation @relation(fields: [wordTranslationId], references: [id], onDelete: Cascade)
+  language        Language        @relation(fields: [languageId], references: [id])
+}
+
+model LessonAudio {
+  id         Int      @id @default(autoincrement())
+  lesson     Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId   Int
+  language   Language @relation(fields: [languageId], references: [id])
+  languageId Int
+
+  audioUrl String
+
+  @@unique([lessonId, languageId])
+}
